@@ -1,0 +1,151 @@
+@inject ProductService ProductSvc
+
+@if (IsVisible)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-content" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3>Add Food</h3>
+                <button class="btn-close" @onclick="Close">&times;</button>
+            </div>
+
+            @if (_selectedProduct is null)
+            {
+                <div class="modal-body">
+                    <input type="text" class="search-input" placeholder="Search products..."
+                           @bind="_searchQuery" @bind:event="oninput" @bind:after="SearchAsync" />
+
+                    <div class="tab-switcher">
+                        <button class="tab-btn @(_showFrequent ? "active" : "")" @onclick="() => SwitchTab(true)">Frequent</button>
+                        <button class="tab-btn @(!_showFrequent ? "active" : "")" @onclick="() => SwitchTab(false)">All</button>
+                    </div>
+
+                    <div class="product-list">
+                        @foreach (var product in _displayProducts)
+                        {
+                            <div class="product-item" @onclick="() => SelectProduct(product)">
+                                <div class="product-name">@product.Name</div>
+                                <div class="product-info">@product.Calories kcal/100g | @(product.DefaultPortionGrams)g portion</div>
+                            </div>
+                        }
+                        @if (!_displayProducts.Any())
+                        {
+                            <div class="empty-list">No products found</div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="modal-body">
+                    <div class="selected-product-name">@_selectedProduct.Name</div>
+                    <div class="portion-input-group">
+                        <label>Portion (grams):</label>
+                        <input type="number" class="portion-input" @bind="_portionGrams" @bind:after="OnPortionChanged" min="1" step="10" />
+                    </div>
+                    <div class="portion-preview">
+                        <span>@((_selectedProduct.Calories * _portionGrams / 100).ToString("0")) kcal</span>
+                        <span>P: @((_selectedProduct.Proteins * _portionGrams / 100).ToString("0.0"))g</span>
+                        <span>F: @((_selectedProduct.Fats * _portionGrams / 100).ToString("0.0"))g</span>
+                        <span>C: @((_selectedProduct.Carbs * _portionGrams / 100).ToString("0.0"))g</span>
+                    </div>
+                    <div class="serving-actions">
+                        <button class="btn btn-serving btn-minus" @onclick="RemoveServing">−1</button>
+                        <span class="serving-count">@_servingCount.ToString("0.##") pcs</span>
+                        <button class="btn btn-serving btn-plus" @onclick="AddServing">+1</button>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" @onclick="() => _selectedProduct = null">Back</button>
+                        <button class="btn btn-primary" @onclick="ConfirmAdd">Add</button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<(int ProductId, double Grams)> OnProductAdded { get; set; }
+
+    private List<Product> _displayProducts = new();
+    private string _searchQuery = "";
+    private bool _showFrequent = true;
+    private Product? _selectedProduct;
+    private double _portionGrams;
+    private double _servingCount;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible && !_displayProducts.Any())
+            await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        _displayProducts = _showFrequent
+            ? await ProductSvc.GetFrequentProducts(10)
+            : await ProductSvc.GetAllProducts();
+    }
+
+    private async Task SearchAsync()
+    {
+        _displayProducts = string.IsNullOrWhiteSpace(_searchQuery)
+            ? await (_showFrequent ? ProductSvc.GetFrequentProducts(10) : ProductSvc.GetAllProducts())
+            : await ProductSvc.SearchProducts(_searchQuery);
+    }
+
+    private async Task SwitchTab(bool frequent)
+    {
+        _showFrequent = frequent;
+        _searchQuery = "";
+        await LoadProducts();
+    }
+
+    private void SelectProduct(Product product)
+    {
+        _selectedProduct = product;
+        _servingCount = 1;
+        _portionGrams = product.DefaultPortionGrams;
+    }
+
+    private void OnPortionChanged()
+    {
+        if (_selectedProduct is not null && _selectedProduct.DefaultPortionGrams > 0)
+            _servingCount = Math.Round(_portionGrams / _selectedProduct.DefaultPortionGrams, 2);
+    }
+
+    private void AddServing()
+    {
+        _servingCount = Math.Round(_servingCount + 1, 2);
+        _portionGrams = Math.Round(_selectedProduct!.DefaultPortionGrams * _servingCount, 1);
+    }
+
+    private void RemoveServing()
+    {
+        var next = Math.Round(_servingCount - 1, 2);
+        if (next >= 0.01)
+        {
+            _servingCount = next;
+            _portionGrams = Math.Round(_selectedProduct!.DefaultPortionGrams * _servingCount, 1);
+        }
+    }
+
+    private async Task ConfirmAdd()
+    {
+        if (_selectedProduct is not null && _portionGrams > 0)
+        {
+            await OnProductAdded.InvokeAsync((_selectedProduct.Id, _portionGrams));
+            _selectedProduct = null;
+            await Close();
+        }
+    }
+
+    private async Task Close()
+    {
+        _selectedProduct = null;
+        _searchQuery = "";
+        await OnClose.InvokeAsync();
+    }
+}

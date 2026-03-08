@@ -1,0 +1,305 @@
+@page "/products"
+@inject ProductService ProductService
+
+<div class="page-content">
+    <h1 class="page-title">Products</h1>
+
+    <div class="import-export-bar">
+        <button class="btn btn-secondary btn-sm" @onclick="ExportProducts" disabled="@_busy">Export JSON</button>
+        <button class="btn btn-secondary btn-sm" @onclick="ImportProducts" disabled="@_busy">Import JSON</button>
+    </div>
+
+    @if (_statusMessage != null)
+    {
+        <div class="status-message @(_statusIsError ? "status-error" : "status-ok")">@_statusMessage</div>
+    }
+
+    <input class="search-input" placeholder="Search..." @bind="_search" @bind:event="oninput" />
+
+    @if (_products == null)
+    {
+        <p class="empty-list">Loading...</p>
+    }
+    else if (Filtered.Count == 0)
+    {
+        <p class="empty-list">@(_products.Count == 0 ? "No products yet. Add one with the + button." : "Nothing found.")</p>
+    }
+    else
+    {
+        <div class="products-list">
+            @foreach (var product in Filtered)
+            {
+                <div class="product-row">
+                    <button class="btn-heart @(product.IsFavorite ? "active" : "")"
+                            @onclick="() => ToggleFavorite(product)">
+                        @(product.IsFavorite ? "❤️" : "🤍")
+                    </button>
+                    <div class="product-row-body" @onclick="() => OpenEdit(product)">
+                        <div class="product-row-name">@product.Name</div>
+                        <div class="product-row-meta">@product.Calories kcal / 100g &nbsp;·&nbsp; P @product.Proteins g &nbsp;·&nbsp; F @product.Fats g &nbsp;·&nbsp; C @product.Carbs g</div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<button class="fab" @onclick="OpenAdd">+</button>
+
+@if (_showModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>@(_isNew ? "Add Product" : "Edit Product")</h3>
+                <button class="btn-close" @onclick="CloseModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input @bind="_editName" placeholder="Product name" />
+                </div>
+                <div class="form-group">
+                    <label>Calories (per 100g)</label>
+                    <input type="number" @bind="_editCalories" />
+                </div>
+                <div class="form-group">
+                    <label>Proteins (g)</label>
+                    <input type="number" @bind="_editProteins" />
+                </div>
+                <div class="form-group">
+                    <label>Fats (g)</label>
+                    <input type="number" @bind="_editFats" />
+                </div>
+                <div class="form-group">
+                    <label>Carbs (g)</label>
+                    <input type="number" @bind="_editCarbs" />
+                </div>
+                <div class="form-group">
+                    <label>Default portion (g)</label>
+                    <input type="number" @bind="_editPortion" />
+                </div>
+
+                @if (_duplicateWarning)
+                {
+                    <div class="warning-text">A product with this name already exists.</div>
+                }
+
+                <div class="modal-actions">
+                    <button class="btn btn-primary btn-block" @onclick="SaveProduct">
+                        @(_isNew ? "Add" : "Save")
+                    </button>
+                    @if (!_isNew)
+                    {
+                        <button class="btn btn-danger btn-block" @onclick="() => _showDeleteConfirm = true">
+                            Delete
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showDeleteConfirm)
+{
+    <div class="modal-overlay" @onclick="() => _showDeleteConfirm = false">
+        <div class="modal-content modal-confirm" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Delete Product</h3>
+            </div>
+            <div class="modal-body">
+                <p>Delete <strong>@_editName</strong>? This cannot be undone.</p>
+                <div class="modal-actions">
+                    <button class="btn btn-danger btn-block" @onclick="ConfirmDelete">Delete</button>
+                    <button class="btn btn-secondary btn-block" @onclick="() => _showDeleteConfirm = false">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BigFitnes.Models.Product>? _products;
+    private string _search = "";
+
+    private List<BigFitnes.Models.Product> Filtered => _products == null ? [] :
+        string.IsNullOrWhiteSpace(_search) ? _products :
+        _products.Where(p => p.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private bool _showModal;
+    private bool _isNew;
+    private bool _duplicateWarning;
+    private bool _showDeleteConfirm;
+    private bool _busy;
+    private string? _statusMessage;
+    private bool _statusIsError;
+
+    private int _editId;
+    private string _editName = "";
+    private double _editCalories;
+    private double _editProteins;
+    private double _editFats;
+    private double _editCarbs;
+    private double _editPortion = 100;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        _products = await ProductService.GetAllProductsSorted();
+    }
+
+    private void OpenAdd()
+    {
+        _isNew = true;
+        _editId = 0;
+        _editName = "";
+        _editCalories = 0;
+        _editProteins = 0;
+        _editFats = 0;
+        _editCarbs = 0;
+        _editPortion = 100;
+        _duplicateWarning = false;
+        _showModal = true;
+    }
+
+    private void OpenEdit(BigFitnes.Models.Product product)
+    {
+        _isNew = false;
+        _editId = product.Id;
+        _editName = product.Name;
+        _editCalories = product.Calories;
+        _editProteins = product.Proteins;
+        _editFats = product.Fats;
+        _editCarbs = product.Carbs;
+        _editPortion = product.DefaultPortionGrams;
+        _duplicateWarning = false;
+        _showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _duplicateWarning = false;
+    }
+
+    private async Task SaveProduct()
+    {
+        if (string.IsNullOrWhiteSpace(_editName))
+            return;
+
+        var duplicate = await ProductService.NameExists(_editName.Trim(), _editId);
+        if (duplicate)
+        {
+            _duplicateWarning = true;
+            return;
+        }
+
+        if (_isNew)
+        {
+            var newProduct = new BigFitnes.Models.Product
+            {
+                Name = _editName.Trim(),
+                Calories = _editCalories,
+                Proteins = _editProteins,
+                Fats = _editFats,
+                Carbs = _editCarbs,
+                DefaultPortionGrams = _editPortion,
+                IsCustom = true
+            };
+            await ProductService.AddCustomProduct(newProduct);
+        }
+        else
+        {
+            var existing = _products!.First(p => p.Id == _editId);
+            existing.Name = _editName.Trim();
+            existing.Calories = _editCalories;
+            existing.Proteins = _editProteins;
+            existing.Fats = _editFats;
+            existing.Carbs = _editCarbs;
+            existing.DefaultPortionGrams = _editPortion;
+            await ProductService.UpdateProduct(existing);
+        }
+
+        _showModal = false;
+        _duplicateWarning = false;
+        await LoadProducts();
+    }
+
+    private async Task ConfirmDelete()
+    {
+        _showDeleteConfirm = false;
+        _showModal = false;
+        await ProductService.DeleteProduct(_editId);
+        await LoadProducts();
+    }
+
+    private async Task ToggleFavorite(BigFitnes.Models.Product product)
+    {
+        await ProductService.ToggleFavorite(product.Id);
+        await LoadProducts();
+    }
+
+    private async Task ExportProducts()
+    {
+        _busy = true;
+        _statusMessage = null;
+        try
+        {
+            var path = await MainThread.InvokeOnMainThreadAsync(() => ProductService.ExportToJsonAsync());
+            _statusMessage = $"Saved: {path}";
+            _statusIsError = false;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Export error: {ex.Message}";
+            _statusIsError = true;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ImportProducts()
+    {
+        _busy = true;
+        _statusMessage = null;
+        try
+        {
+            var result = await MainThread.InvokeOnMainThreadAsync(() =>
+                FilePicker.Default.PickAsync(new PickOptions
+                {
+                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                    {
+                        { DevicePlatform.WinUI, [".json"] }
+                    })
+                }));
+
+            if (result == null)
+            {
+                _busy = false;
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(result.FullPath);
+            var importResult = await ProductService.ImportFromJsonAsync(json);
+            _statusMessage = $"Imported: {importResult.Added} added, {importResult.Skipped} skipped";
+            _statusIsError = false;
+            await LoadProducts();
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Import error: {ex.Message}";
+            _statusIsError = true;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>BigFitnes</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="BigFitnes.styles.css" />
+    <link rel="icon" href="data:,">
+</head>
+
+<body>
+
+    <div class="status-bar-safe-area"></div>
+
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_content/Blazor-ApexCharts/js/blazor-apexcharts.js"></script>
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <script>
+        function _updateVvh() {
+            var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            document.documentElement.style.setProperty('--vvh', h + 'px');
+        }
+        _updateVvh();
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', _updateVvh);
+            window.visualViewport.addEventListener('scroll', _updateVvh);
+        }
+    </script>
+
+</body>
+
+</html>

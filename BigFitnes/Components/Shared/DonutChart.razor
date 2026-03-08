@@ -1,0 +1,51 @@
+@* SVG Donut Chart showing consumed vs goal calories *@
+
+<div class="donut-chart-container">
+    <svg viewBox="0 0 200 200" class="donut-chart">
+        @* Background circle *@
+        <circle cx="100" cy="100" r="80" fill="none" class="donut-bg-track" stroke-width="20" />
+        @* Progress arc *@
+        @if (Percentage > 0)
+        {
+            <circle cx="100" cy="100" r="80"
+                    fill="none"
+                    stroke="@ProgressColor"
+                    stroke-width="20"
+                    stroke-dasharray="@DashArray"
+                    stroke-dashoffset="@DashOffset"
+                    stroke-linecap="round"
+                    transform="rotate(-90 100 100)" />
+        }
+        @* Center text *@
+        @((MarkupString)$"<text x=\"100\" y=\"80\" text-anchor=\"middle\" class=\"donut-emoji\">{Emoji}</text>")
+        @((MarkupString)$"<text x=\"100\" y=\"107\" text-anchor=\"middle\" class=\"donut-consumed\">{Consumed:0}</text>")
+        @((MarkupString)$"<text x=\"100\" y=\"125\" text-anchor=\"middle\" class=\"donut-goal\">/ {Goal:0} kcal</text>")
+    </svg>
+</div>
+
+@code {
+    [Parameter] public double Consumed { get; set; }
+    [Parameter] public double Goal { get; set; } = 2000;
+
+    private double RawPercentage => Goal > 0 ? Consumed / Goal : 0;
+    private double Percentage => Math.Min(RawPercentage, 1.0);
+    private double Circumference => 2 * Math.PI * 80;
+    private string DashArray => $"{(Circumference * Percentage).ToString(System.Globalization.CultureInfo.InvariantCulture)} {Circumference.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+    private string DashOffset => "0";
+
+    private string ProgressColor => RawPercentage switch
+    {
+        >= 1.0 => "#c62828",
+        >= 0.9 => "#fbc02d",
+        >= 0.7 => "#29b6f6",
+        _ => "#4caf50"
+    };
+
+    private string Emoji => RawPercentage switch
+    {
+        >= 1.0 => "🤬",
+        >= 0.9 => "🧐",
+        >= 0.7 => "🙂",
+        _ => "😋"
+    };
+}

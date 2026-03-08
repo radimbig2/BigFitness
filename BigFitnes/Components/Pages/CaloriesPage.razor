@@ -1,0 +1,153 @@
+@page "/"
+@inject CalorieService CalorieSvc
+@inject ProfileService ProfileSvc
+@inject IJSRuntime JS
+
+<div class="page-content @(CalPct >= 1.0 ? "page-over-limit" : "")">
+    <div class="date-nav">
+        <button class="date-nav-btn" @onclick="PrevDay">&#8249;</button>
+        <div class="date-nav-center">
+            <span class="date-nav-label">@DateLabel</span>
+            <button class="date-nav-cal-btn" @onclick="OpenDatePicker">
+                @((MarkupString)"<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>")
+            </button>
+            <input id="date-picker-input" type="date" class="date-picker-hidden"
+                   max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                   value="@_selectedDate.ToString("yyyy-MM-dd")"
+                   @onchange="OnDatePicked" />
+        </div>
+        <button class="date-nav-btn" @onclick="NextDay" disabled="@(_selectedDate >= DateTime.Today)">&#8250;</button>
+    </div>
+
+    <h2 class="page-title">Calories</h2>
+
+    <DonutChart Consumed="@_summary.Calories" Goal="@_profile.DailyCalorieGoal" />
+
+    <div class="macro-bars">
+        <div class="macro-bar">
+            <div class="macro-bar-header">
+                <span>Protein</span>
+                <span>@_summary.Proteins.ToString("0")/@_profile.DailyProteinGoal.ToString("0")g</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill protein" style="width: @GetPercent(_summary.Proteins, _profile.DailyProteinGoal)%"></div>
+            </div>
+        </div>
+        <div class="macro-bar">
+            <div class="macro-bar-header">
+                <span>Fats</span>
+                <span>@_summary.Fats.ToString("0")/@_profile.DailyFatGoal.ToString("0")g</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill fats" style="width: @GetPercent(_summary.Fats, _profile.DailyFatGoal)%"></div>
+            </div>
+        </div>
+        <div class="macro-bar">
+            <div class="macro-bar-header">
+                <span>Carbs</span>
+                <span>@_summary.Carbs.ToString("0")/@_profile.DailyCarbGoal.ToString("0")g</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill carbs" style="width: @GetPercent(_summary.Carbs, _profile.DailyCarbGoal)%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="food-list">
+        <h3>Food Log</h3>
+        @if (_entries.Any())
+        {
+            @foreach (var entry in _entries)
+            {
+                <div class="food-entry">
+                    <div class="food-entry-info">
+                        <div class="food-entry-name">@entry.Product.Name</div>
+                        <div class="food-entry-detail">@entry.PortionGrams g | P:@entry.TotalProteins.ToString("0") F:@entry.TotalFats.ToString("0") C:@entry.TotalCarbs.ToString("0")</div>
+                    </div>
+                    <div class="food-entry-right">
+                        <span class="food-entry-cal">@entry.TotalCalories.ToString("0") kcal</span>
+                        <button class="btn-delete" @onclick="() => DeleteEntry(entry.Id)">&times;</button>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-list">No food logged. Tap + to add.</div>
+        }
+    </div>
+
+    <button class="fab" @onclick="() => _showPicker = true">+</button>
+</div>
+
+<ProductPicker IsVisible="_showPicker" OnClose="() => _showPicker = false" OnProductAdded="AddFood" />
+
+@code {
+    private List<FoodEntry> _entries = new();
+    private DailySummary _summary = new();
+    private UserProfile _profile = new();
+    private bool _showPicker;
+    private DateTime _selectedDate = DateTime.Today;
+
+    private string DateLabel => _selectedDate == DateTime.Today ? "Today"
+        : _selectedDate == DateTime.Today.AddDays(-1) ? "Yesterday"
+        : _selectedDate.ToString("d MMM yyyy");
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await ProfileSvc.GetProfile();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _entries = await CalorieSvc.GetEntriesForDate(_selectedDate);
+        _summary = await CalorieSvc.GetDailySummary(_selectedDate);
+    }
+
+    private async Task PrevDay()
+    {
+        _selectedDate = _selectedDate.AddDays(-1);
+        await LoadData();
+    }
+
+    private async Task NextDay()
+    {
+        if (_selectedDate < DateTime.Today)
+        {
+            _selectedDate = _selectedDate.AddDays(1);
+            await LoadData();
+        }
+    }
+
+    private async Task OpenDatePicker()
+    {
+        await JS.InvokeVoidAsync("eval", "var el=document.getElementById('date-picker-input');if(el.showPicker)el.showPicker();else el.click();");
+    }
+
+    private async Task OnDatePicked(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var picked) && picked <= DateTime.Today)
+        {
+            _selectedDate = picked;
+            await LoadData();
+        }
+    }
+
+    private async Task AddFood((int ProductId, double Grams) item)
+    {
+        await CalorieSvc.AddEntry(item.ProductId, item.Grams, _selectedDate);
+        await LoadData();
+    }
+
+    private async Task DeleteEntry(int id)
+    {
+        await CalorieSvc.DeleteEntry(id);
+        await LoadData();
+    }
+
+    private double CalPct => _profile.DailyCalorieGoal > 0 ? _summary.Calories / _profile.DailyCalorieGoal : 0;
+
+    private static string GetPercent(double value, double goal)
+        => (goal > 0 ? Math.Min(value / goal * 100, 100) : 0).ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+}

@@ -1,0 +1,149 @@
+@using ApexCharts
+
+@if (_points.Any())
+{
+    <ApexChart TItem="CaloriePoint" Options="_options" @ref="_chart">
+        <ApexPointSeries TItem="CaloriePoint"
+            Items="_points"
+            Name="Calories"
+            SeriesType="SeriesType.Bar"
+            XValue="@(p => p.Hour.ToString("yyyy-MM-ddTHH:mm:ss"))"
+            YValue="@(p => (decimal)p.Calories)"
+            Color="#29b6f6"
+            OrderBy="x => x.X" />
+    </ApexChart>
+}
+else
+{
+    <div class="empty-chart">No food data yet</div>
+}
+
+@code {
+    [Parameter] public List<CaloriePoint> DailyCalories { get; set; } = new();
+    [Parameter] public double MaintenanceCalories { get; set; }
+    [Parameter] public double WeightLossCalories { get; set; }
+
+    private ApexChart<CaloriePoint>? _chart;
+    private ApexChartOptions<CaloriePoint> _options = new();
+    private List<CaloriePoint> _points = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _points = DailyCalories;
+        BuildOptions();
+        if (_chart != null)
+            await _chart.UpdateSeriesAsync(animate: true);
+    }
+
+    private void BuildOptions()
+    {
+        double maxVal = _points.Any() ? _points.Max(p => p.Calories) : 800;
+
+        _options = new ApexChartOptions<CaloriePoint>
+        {
+            Chart = new Chart
+            {
+                Type = ChartType.Bar,
+                Toolbar = new Toolbar { Show = false },
+                Zoom = new Zoom { Enabled = true },
+                Background = "transparent",
+                FontFamily = "inherit",
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    ColumnWidth = "60%",
+                    BorderRadius = 4,
+                    BorderRadiusApplication = BorderRadiusApplication.End
+                }
+            },
+            Legend = new Legend { Show = false },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Labels = new XAxisLabels
+                {
+                    Show = true,
+                    DatetimeUTC = false,
+                    Format = "dd MMM HH:mm",
+                    Style = new AxisLabelStyle { Colors = "#aaaaaa", FontSize = "11px" },
+                    Rotate = -30
+                },
+                TickAmount = 8,
+                AxisBorder = new AxisBorder { Color = "#444" },
+                AxisTicks = new AxisTicks { Color = "#444" }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Show = true,
+                    Min = 0,
+                    Max = (decimal)(maxVal * 1.2),
+                    Labels = new YAxisLabels
+                    {
+                        Show = true,
+                        Formatter = "function(val) { return Math.round(val) + ' kcal'; }",
+                        Style = new AxisLabelStyle { Colors = "#aaaaaa", FontSize = "11px" }
+                    }
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd MMM yyyy HH:mm" },
+                Y = new TooltipY { Formatter = "function(val) { return Math.round(val) + ' kcal'; }" }
+            },
+            Grid = new Grid
+            {
+                BorderColor = "#333",
+                Row = new GridRow { Colors = new List<string> { "transparent" } }
+            },
+            DataLabels = new DataLabels { Enabled = false },
+            Annotations = BuildAnnotations()
+        };
+    }
+
+    private Annotations BuildAnnotations()
+    {
+        var ann = new Annotations { Yaxis = new List<AnnotationsYAxis>() };
+
+        if (MaintenanceCalories > 0)
+            ann.Yaxis.Add(new AnnotationsYAxis
+            {
+                Y = (decimal)MaintenanceCalories,
+                BorderColor = "#ffd600",
+                BorderWidth = 2,
+                StrokeDashArray = 6,
+                Label = new Label
+                {
+                    Text = $"Maintenance {(int)MaintenanceCalories} kcal",
+                    OffsetX = -8,
+                    Style = new Style { Background = "#ffd600", Color = "#111", FontSize = "11px" }
+                }
+            });
+
+        if (WeightLossCalories > 0)
+            ann.Yaxis.Add(new AnnotationsYAxis
+            {
+                Y = (decimal)WeightLossCalories,
+                BorderColor = "#00c853",
+                BorderWidth = 2,
+                StrokeDashArray = 6,
+                Label = new Label
+                {
+                    Text = $"Weight loss {(int)WeightLossCalories} kcal",
+                    OffsetX = -8,
+                    Style = new Style { Background = "#00c853", Color = "#fff", FontSize = "11px" }
+                }
+            });
+
+        return ann;
+    }
+
+    public class CaloriePoint
+    {
+        public DateTime Hour { get; set; }
+        public double Calories { get; set; }
+    }
+}
