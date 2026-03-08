@@ -29,6 +29,7 @@ jobs:
           dotnet publish BigFitnes/BigFitnes.csproj \
             -f net9.0-android \
             -c Release \
+            -p:TargetFramework=net9.0-android \
             -p:AndroidPackageFormat=apk \
             -p:AndroidSigningKeyStore="" \
             -p:AndroidKeyStore=false \
