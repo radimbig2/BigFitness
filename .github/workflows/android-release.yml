@@ -3,7 +3,7 @@ name: Build & Release Android APK
 on:
   push:
     tags:
-      - 'v*'          # срабатывает на теги вида v1.0.0, v1.2.3 и т.д.
+      - 'v*'
 
 jobs:
   build-android:
@@ -49,12 +49,12 @@ jobs:
           body: |
             ## BigFitness ${{ github.ref_name }}
 
-            ### Установка на Android
-            1. Скачайте `BigFitness.apk`
-            2. Разрешите установку из неизвестных источников
-            3. Установите APK
+            ### Installation
+            1. Download `BigFitness.apk`
+            2. Enable "Install from unknown sources" in Android settings
+            3. Install the APK
 
-            > Требуется Android 7.0 (API 24) или новее
+            Requires Android 7.0 (API 24) or higher.
           files: ${{ steps.find_apk.outputs.apk_path }}
           draft: false
           prerelease: false
