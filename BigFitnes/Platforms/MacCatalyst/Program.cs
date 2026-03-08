@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace BigFitnes;
+namespace BigFitness;
 
 public class Program
 {

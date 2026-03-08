@@ -1,4 +1,4 @@
-﻿namespace BigFitnes;
+﻿namespace BigFitness;
 
 public partial class MainPage : ContentPage
 {

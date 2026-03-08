@@ -1,9 +1,9 @@
 using System.Text.Json;
-using BigFitnes.Data;
-using BigFitnes.Models;
+using BigFitness.Data;
+using BigFitness.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BigFitnes.Services;
+namespace BigFitness.Services;
 
 public class ProductService
 {
@@ -50,7 +50,6 @@ public class ProductService
 
     public async Task<Product> AddCustomProduct(Product product)
     {
-        product.IsCustom = true;
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
         return product;
@@ -65,7 +64,7 @@ public class ProductService
     public async Task ToggleFavorite(int productId)
     {
         var p = await _db.Products.FindAsync(productId);
-        if (p != null) { p.IsFavorite = !p.IsFavorite; await _db.SaveChangesAsync(); }
+        if (p != null) { p.ToggleFavorite(); await _db.SaveChangesAsync(); }
     }
 
     public async Task UpdateProduct(Product product)
@@ -102,7 +101,7 @@ public class ProductService
         var json = JsonSerializer.Serialize(dtos, _jsonOptions);
 
         var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var path = Path.Combine(dir, $"bigfitnes_products_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+        var path = Path.Combine(dir, $"BigFitness_products_{DateTime.Now:yyyyMMdd_HHmmss}.json");
         await File.WriteAllTextAsync(path, json);
         return path;
     }
@@ -122,17 +121,15 @@ public class ProductService
                 skipped++;
                 continue;
             }
-            toAdd.Add(new Product
-            {
-                Name = dto.Name.Trim(),
-                Calories = dto.Calories,
-                Proteins = dto.Proteins,
-                Fats = dto.Fats,
-                Carbs = dto.Carbs,
-                DefaultPortionGrams = dto.DefaultPortionGrams > 0 ? dto.DefaultPortionGrams : 100,
-                IsFavorite = dto.IsFavorite,
-                IsCustom = true
-            });
+            toAdd.Add(new Product(
+                dto.Name.Trim(),
+                dto.Calories,
+                dto.Proteins,
+                dto.Fats,
+                dto.Carbs,
+                dto.DefaultPortionGrams > 0 ? dto.DefaultPortionGrams : 100,
+                isCustom: true,
+                isFavorite: dto.IsFavorite));
             added++;
         }
 

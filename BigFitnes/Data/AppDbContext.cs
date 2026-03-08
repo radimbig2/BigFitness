@@ -1,7 +1,7 @@
-using BigFitnes.Models;
+using BigFitness.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BigFitnes.Data;
+namespace BigFitness.Data;
 
 public class AppDbContext : DbContext
 {

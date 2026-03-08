@@ -1,15 +1,37 @@
-namespace BigFitnes.Models;
+namespace BigFitness.Models;
 
 public class FoodEntry
 {
-    public int Id { get; set; }
-    public int ProductId { get; set; }
-    public Product Product { get; set; } = null!;
-    public double PortionGrams { get; set; }
-    public double TotalCalories { get; set; }
-    public double TotalProteins { get; set; }
-    public double TotalFats { get; set; }
-    public double TotalCarbs { get; set; }
-    public DateTime Date { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    // Required by EF Core
+    private FoodEntry() { }
+
+    public FoodEntry(
+        int productId,
+        double portionGrams,
+        double totalCalories,
+        double totalProteins,
+        double totalFats,
+        double totalCarbs,
+        DateTime date)
+    {
+        ProductId = productId;
+        PortionGrams = portionGrams;
+        TotalCalories = totalCalories;
+        TotalProteins = totalProteins;
+        TotalFats = totalFats;
+        TotalCarbs = totalCarbs;
+        Date = date;
+        CreatedAt = DateTime.Now;
+    }
+
+    public int Id { get; private set; }
+    public int ProductId { get; private set; }
+    public Product Product { get; private set; } = null!;
+    public double PortionGrams { get; private set; }
+    public double TotalCalories { get; private set; }
+    public double TotalProteins { get; private set; }
+    public double TotalFats { get; private set; }
+    public double TotalCarbs { get; private set; }
+    public DateTime Date { get; private set; }
+    public DateTime CreatedAt { get; private set; }
 }

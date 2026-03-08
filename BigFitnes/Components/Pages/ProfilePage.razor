@@ -1,7 +1,4 @@
 @page "/profile"
-@inject ProfileService ProfileSvc
-@inject BigFitnes.Services.ThemeService ThemeSvc
-@inject BigFitnes.Services.WeightService WeightSvc
 
 <div class="page-content">
     <h2 class="page-title">Profile</h2>
@@ -23,30 +20,30 @@
             <h3>Personal Info</h3>
             <div class="form-group">
                 <label>Name</label>
-                <input type="text" @bind="_profile.Name" />
+                <input type="text" @bind="_editName" />
             </div>
             <div class="form-group">
                 <label>Height (cm)</label>
-                <input type="number" @bind="_profile.Height" step="1" />
+                <input type="number" @bind="_editHeight" step="1" />
             </div>
             <div class="form-group">
                 <label>Goal Weight (kg)</label>
-                <input type="number" @bind="_profile.GoalWeight" step="0.1" />
+                <input type="number" @bind="_editGoalWeight" step="0.1" />
             </div>
             <div class="form-group">
                 <label>Age</label>
-                <input type="number" @bind="_profile.Age" step="1" />
+                <input type="number" @bind="_editAge" step="1" />
             </div>
             <div class="form-group">
                 <label>Gender</label>
-                <select @bind="_profile.Gender">
+                <select @bind="_editGender">
                     <option value="@Gender.Male">Male</option>
                     <option value="@Gender.Female">Female</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Activity Level</label>
-                <select @bind="_profile.ActivityLevel">
+                <select @bind="_editActivityLevel">
                     <option value="@ActivityLevel.Sedentary">Sedentary (office work)</option>
                     <option value="@ActivityLevel.Light">Light (1-2 workouts/week)</option>
                     <option value="@ActivityLevel.Moderate">Moderate (3-5 workouts/week)</option>
@@ -56,17 +53,17 @@
             </div>
         </div>
 
-        @if (_profile.Age > 0 && _latestWeight > 0)
+        @if (_editAge > 0 && _latestWeight > 0)
         {
             <div class="form-section">
                 <h3>TDEE Dashboard</h3>
                 <div class="tdee-dashboard">
-                    <div class="tdee-card @(_profile.CalorieGoalMode == CalorieGoalMode.WeightLoss ? "active" : "")"
+                    <div class="tdee-card @(_editCalorieGoalMode == CalorieGoalMode.WeightLoss ? "active" : "")"
                          @onclick="() => SelectMode(CalorieGoalMode.WeightLoss)">
                         <div class="tdee-card-value">@((int)GetWeightLossCalories()) kcal</div>
                         <div class="tdee-card-label">For weight loss</div>
                     </div>
-                    <div class="tdee-card @(_profile.CalorieGoalMode == CalorieGoalMode.Maintenance ? "active" : "")"
+                    <div class="tdee-card @(_editCalorieGoalMode == CalorieGoalMode.Maintenance ? "active" : "")"
                          @onclick="() => SelectMode(CalorieGoalMode.Maintenance)">
                         <div class="tdee-card-value">@((int)CalcTDEE()) kcal</div>
                         <div class="tdee-card-label">For keeping weight</div>
@@ -81,18 +78,18 @@
                 <label>Calories (kcal)</label>
                 <div class="calorie-input-row">
                     <input type="number"
-                           class="@(_profile.CalorieGoalMode != CalorieGoalMode.Manual ? "calorie-input-disabled" : "")"
-                           disabled="@(_profile.CalorieGoalMode != CalorieGoalMode.Manual)"
-                           @bind="_profile.DailyCalorieGoal" step="50" />
+                           class="@(_editCalorieGoalMode != CalorieGoalMode.Manual ? "calorie-input-disabled" : "")"
+                           disabled="@(_editCalorieGoalMode != CalorieGoalMode.Manual)"
+                           @bind="_editDailyCalorieGoal" step="50" />
                 </div>
             </div>
-            @if (_profile.Age > 0 && _latestWeight > 0)
+            @if (_editAge > 0 && _latestWeight > 0)
             {
                 <div class="theme-toggle-row" style="margin-bottom: 12px;">
                     <span style="font-size: 14px;">Manual input</span>
                     <label class="toggle-switch">
                         <input type="checkbox"
-                               checked="@(_profile.CalorieGoalMode == CalorieGoalMode.Manual)"
+                               checked="@(_editCalorieGoalMode == CalorieGoalMode.Manual)"
                                @onchange="ToggleManualMode" />
                         <span class="toggle-slider"></span>
                     </label>
@@ -100,15 +97,15 @@
             }
             <div class="form-group">
                 <label>Protein (g)</label>
-                <input type="number" @bind="_profile.DailyProteinGoal" step="5" />
+                <input type="number" @bind="_editDailyProteinGoal" step="5" />
             </div>
             <div class="form-group">
                 <label>Fats (g)</label>
-                <input type="number" @bind="_profile.DailyFatGoal" step="5" />
+                <input type="number" @bind="_editDailyFatGoal" step="5" />
             </div>
             <div class="form-group">
                 <label>Carbs (g)</label>
-                <input type="number" @bind="_profile.DailyCarbGoal" step="5" />
+                <input type="number" @bind="_editDailyCarbGoal" step="5" />
             </div>
         </div>
 
@@ -177,91 +174,3 @@
         border-color: var(--primary);
     }
 </style>
-
-@code {
-    private UserProfile? _profile;
-    private bool _saved;
-    private double _latestWeight;
-
-    protected override async Task OnInitializedAsync()
-    {
-        _profile = await ProfileSvc.GetProfile();
-        var weightRecord = await WeightSvc.GetLatestWeight();
-        _latestWeight = weightRecord?.Weight ?? 0;
-    }
-
-    private async Task ToggleTheme()
-    {
-        if (_profile is null) return;
-        _profile.IsDarkTheme = !_profile.IsDarkTheme;
-        ThemeSvc.SetTheme(_profile.IsDarkTheme);
-        await ProfileSvc.UpdateProfile(_profile);
-    }
-
-    private void ToggleManualMode()
-    {
-        if (_profile is null) return;
-        if (_profile.CalorieGoalMode != CalorieGoalMode.Manual)
-        {
-            _profile.CalorieGoalMode = CalorieGoalMode.Manual;
-        }
-        else
-        {
-            // switching off manual → default to Maintenance
-            _profile.CalorieGoalMode = CalorieGoalMode.Maintenance;
-            _profile.DailyCalorieGoal = (int)CalcTDEE();
-        }
-    }
-
-    private void SelectMode(CalorieGoalMode mode)
-    {
-        if (_profile is null) return;
-        _profile.CalorieGoalMode = mode;
-        _profile.DailyCalorieGoal = mode == CalorieGoalMode.WeightLoss
-            ? (int)GetWeightLossCalories()
-            : (int)CalcTDEE();
-    }
-
-    private double GetActivityCoefficient(ActivityLevel level) => level switch
-    {
-        ActivityLevel.Sedentary => 1.2,
-        ActivityLevel.Light => 1.375,
-        ActivityLevel.Moderate => 1.55,
-        ActivityLevel.High => 1.725,
-        ActivityLevel.VeryHigh => 1.9,
-        _ => 1.2
-    };
-
-    private double CalcBMR()
-    {
-        if (_profile is null) return 0;
-        return 10 * _latestWeight + 6.25 * _profile.Height - 5 * _profile.Age
-            + (_profile.Gender == Gender.Male ? 5 : -161);
-    }
-
-    private double CalcTDEE()
-    {
-        if (_profile is null) return 0;
-        return CalcBMR() * GetActivityCoefficient(_profile.ActivityLevel);
-    }
-
-    private double GetWeightLossCalories() => CalcTDEE() * 0.825;
-
-    private async Task Save()
-    {
-        if (_profile is not null)
-        {
-            if (_profile.CalorieGoalMode == CalorieGoalMode.WeightLoss)
-                _profile.DailyCalorieGoal = (int)GetWeightLossCalories();
-            else if (_profile.CalorieGoalMode == CalorieGoalMode.Maintenance)
-                _profile.DailyCalorieGoal = (int)CalcTDEE();
-
-            await ProfileSvc.UpdateProfile(_profile);
-            _saved = true;
-            StateHasChanged();
-            await Task.Delay(1500);
-            _saved = false;
-            StateHasChanged();
-        }
-    }
-}

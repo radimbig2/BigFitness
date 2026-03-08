@@ -1,10 +1,10 @@
 using ApexCharts;
-using BigFitnes.Data;
-using BigFitnes.Services;
+using BigFitness.Data;
+using BigFitness.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace BigFitnes;
+namespace BigFitness;
 
 public static class MauiProgram
 {
@@ -21,7 +21,7 @@ public static class MauiProgram
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddApexCharts();
 
-        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "bigfitnes.db");
+        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "BigFitness.db");
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath}"));
 

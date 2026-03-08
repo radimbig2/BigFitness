@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace BigFitnes;
+namespace BigFitness;
 
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate

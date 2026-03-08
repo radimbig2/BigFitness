@@ -1,8 +1,8 @@
-using BigFitnes.Data;
-using BigFitnes.Models;
+using BigFitness.Data;
+using BigFitness.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BigFitnes.Services;
+namespace BigFitness.Services;
 
 public class CalorieService
 {
@@ -20,13 +20,11 @@ public class CalorieService
     public async Task<DailySummary> GetDailySummary(DateTime date)
     {
         var entries = await GetEntriesForDate(date);
-        return new DailySummary
-        {
-            Calories = entries.Sum(e => e.TotalCalories),
-            Proteins = entries.Sum(e => e.TotalProteins),
-            Fats = entries.Sum(e => e.TotalFats),
-            Carbs = entries.Sum(e => e.TotalCarbs)
-        };
+        return new DailySummary(
+            entries.Sum(e => e.TotalCalories),
+            entries.Sum(e => e.TotalProteins),
+            entries.Sum(e => e.TotalFats),
+            entries.Sum(e => e.TotalCarbs));
     }
 
     public async Task<FoodEntry> AddEntry(int productId, double grams, DateTime? date = null)
@@ -35,17 +33,14 @@ public class CalorieService
             ?? throw new InvalidOperationException("Product not found");
 
         var ratio = grams / 100.0;
-        var entry = new FoodEntry
-        {
-            ProductId = productId,
-            PortionGrams = grams,
-            TotalCalories = Math.Round(product.Calories * ratio, 1),
-            TotalProteins = Math.Round(product.Proteins * ratio, 1),
-            TotalFats = Math.Round(product.Fats * ratio, 1),
-            TotalCarbs = Math.Round(product.Carbs * ratio, 1),
-            Date = (date ?? DateTime.Today).Date,
-            CreatedAt = DateTime.Now
-        };
+        var entry = new FoodEntry(
+            productId,
+            grams,
+            Math.Round(product.Calories * ratio, 1),
+            Math.Round(product.Proteins * ratio, 1),
+            Math.Round(product.Fats * ratio, 1),
+            Math.Round(product.Carbs * ratio, 1),
+            (date ?? DateTime.Today).Date);
 
         _db.FoodEntries.Add(entry);
         await _db.SaveChangesAsync();
@@ -85,12 +80,4 @@ public class CalorieService
             .OrderBy(x => x.Item1)
             .ToList();
     }
-}
-
-public class DailySummary
-{
-    public double Calories { get; set; }
-    public double Proteins { get; set; }
-    public double Fats { get; set; }
-    public double Carbs { get; set; }
 }

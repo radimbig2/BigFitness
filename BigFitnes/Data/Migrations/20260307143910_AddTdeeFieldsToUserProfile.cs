@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace BigFitnes.Data.Migrations
+namespace BigFitness.Data.Migrations
 {
     /// <inheritdoc />
     public partial class AddTdeeFieldsToUserProfile : Migration

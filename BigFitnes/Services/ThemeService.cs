@@ -1,4 +1,4 @@
-namespace BigFitnes.Services;
+namespace BigFitness.Services;
 
 public class ThemeService
 {

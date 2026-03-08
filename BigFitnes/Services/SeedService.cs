@@ -1,9 +1,9 @@
 using System.Text.Json;
-using BigFitnes.Data;
-using BigFitnes.Models;
+using BigFitness.Data;
+using BigFitness.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BigFitnes.Services;
+namespace BigFitness.Services;
 
 public class SeedService(AppDbContext db)
 {
@@ -22,16 +22,13 @@ public class SeedService(AppDbContext db)
         if (items is null || items.Count == 0)
             return;
 
-        var products = items.Select(s => new Product
-        {
-            Name                = s.Name,
-            Calories            = s.Calories,
-            Proteins            = s.Proteins,
-            Fats                = s.Fats,
-            Carbs               = s.Carbs,
-            DefaultPortionGrams = s.DefaultPortionGrams,
-            IsCustom            = false,
-        }).ToList();
+        var products = items.Select(s => new Product(
+            s.Name,
+            s.Calories,
+            s.Proteins,
+            s.Fats,
+            s.Carbs,
+            s.DefaultPortionGrams)).ToList();
 
         await db.Products.AddRangeAsync(products).ConfigureAwait(false);
         await db.SaveChangesAsync().ConfigureAwait(false);

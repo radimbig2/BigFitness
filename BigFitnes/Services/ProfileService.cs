@@ -1,8 +1,9 @@
-using BigFitnes.Data;
-using BigFitnes.Models;
+using BigFitness.Data;
+using BigFitness.Models;
+using BigFitness.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace BigFitnes.Services;
+namespace BigFitness.Services;
 
 public class ProfileService
 {
@@ -15,19 +16,18 @@ public class ProfileService
         var profile = await _db.UserProfiles.FirstOrDefaultAsync();
         if (profile is null)
         {
-            profile = new UserProfile
-            {
-                Name = "User",
-                Height = 175,
-                DailyCalorieGoal = 2000,
-                DailyProteinGoal = 150,
-                DailyFatGoal = 70,
-                DailyCarbGoal = 250,
-                Age = 0,
-                Gender = Gender.Male,
-                ActivityLevel = ActivityLevel.Sedentary,
-                CalorieGoalMode = CalorieGoalMode.Manual
-            };
+            profile = new UserProfile(
+                name: "User",
+                height: 175,
+                goalWeight: null,
+                age: 0,
+                gender: Gender.Male,
+                activityLevel: ActivityLevel.Sedentary,
+                calorieGoalMode: CalorieGoalMode.Manual,
+                dailyCalorieGoal: 2000,
+                dailyProteinGoal: 150,
+                dailyFatGoal: 70,
+                dailyCarbGoal: 250);
             _db.UserProfiles.Add(profile);
             await _db.SaveChangesAsync();
         }

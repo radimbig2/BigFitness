@@ -1,8 +1,8 @@
-using BigFitnes.Data;
-using BigFitnes.Models;
+using BigFitness.Data;
+using BigFitness.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BigFitnes.Services;
+namespace BigFitness.Services;
 
 public class WeightService
 {
@@ -26,17 +26,11 @@ public class WeightService
 
         if (existing is not null)
         {
-            existing.Weight = weight;
-            existing.CreatedAt = DateTime.Now;
+            existing.UpdateWeight(weight);
         }
         else
         {
-            existing = new WeightRecord
-            {
-                Weight = weight,
-                Date = date.Date,
-                CreatedAt = DateTime.Now
-            };
+            existing = new WeightRecord(weight, date);
             _db.WeightRecords.Add(existing);
         }
 

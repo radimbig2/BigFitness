@@ -2,7 +2,7 @@ using System;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 
-namespace BigFitnes;
+namespace BigFitness;
 
 class Program : MauiApplication
 {
