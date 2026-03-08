@@ -33,6 +33,7 @@ jobs:
             -p:AndroidPackageFormat=apk \
             -p:AndroidSigningKeyStore="" \
             -p:AndroidKeyStore=false \
+            --no-restore \
             --output ./artifacts
 
       - name: Find APK
