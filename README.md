@@ -26,7 +26,7 @@ Get the latest Android APK from the [Releases](../../releases/latest) page.
 
 **Windows:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/BigFitnes.git
+git clone https://github.com/radimbig2/BigFitness.git
 cd BigFitnes
 dotnet build BigFitnes/BigFitnes.csproj -f net9.0-windows10.0.19041.0
 ```
